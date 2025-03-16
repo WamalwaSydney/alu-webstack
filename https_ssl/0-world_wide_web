@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+# Script that displays information about domain and subdomains
+
+# Function to audit a domain
+audit_domain() {
+    domain=$1
+    subdomain=$2
+    
+    # If subdomain is provided, get info for that specific subdomain
+    if [ -n "$subdomain" ]; then
+        record=$(dig "$subdomain.$domain" | grep -A1 'ANSWER SECTION:' | tail -1)
+        record_type=$(echo "$record" | awk '{print $4}')
+        destination=$(echo "$record" | awk '{print $5}')
+        echo "The subdomain $subdomain is a $record_type record and points to $destination"
+    else
+        # Default subdomains to check
+        subdomains=("www" "lb-01" "web-01" "web-02")
+        
+        # Loop through each subdomain
+        for sub in "${subdomains[@]}"; do
+            record=$(dig "$sub.$domain" | grep -A1 'ANSWER SECTION:' | tail -1)
+            record_type=$(echo "$record" | awk '{print $4}')
+            destination=$(echo "$record" | awk '{print $5}')
+            echo "The subdomain $sub is a $record_type record and points to $destination"
+        done
+    fi
+}
+
+# Check if at least domain argument is provided
+if [ $# -lt 1 ]; then
+    echo "Usage: $0 domain [subdomain]"
+    exit 1
+fi
+
+domain=$1
+subdomain=$2
+
+# Call the function with the provided arguments
+audit_domain "$domain" "$subdomain"
