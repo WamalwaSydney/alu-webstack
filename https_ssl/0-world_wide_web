@@ -1,35 +1,15 @@
 #!/usr/bin/env bash
-# Displays DNS information about domain subdomains including www, lb-01, web-01, and web-02
+# This function to displays subdomain information [SUB_DOMAIN] is a [RECORD_TYPE] record and points to [DESTINATION]
 
-audit_domain() {
-    local domain=$1
-    local subdomain=$2
-
-    if [ -n "$subdomain" ]; then
-        local record
-        record=$(dig "$subdomain.$domain" | grep -A1 'ANSWER SECTION:' | tail -n1)
-        local record_type
-        record_type=$(echo "$record" | awk '{print $4}')
-        local destination
-        destination=$(echo "$record" | awk '{print $5}')
-        echo "The subdomain $subdomain is a $record_type record and points to $destination"
-    else
-        local subdomains=("www" "lb-01" "web-01" "web-02")
-        for sub in "${subdomains[@]}"; do
-            local record
-            record=$(dig "$sub.$domain" | grep -A1 'ANSWER SECTION:' | tail -n1)
-            local record_type
-            record_type=$(echo "$record" | awk '{print $4}')
-            local destination
-            destination=$(echo "$record" | awk '{print $5}')
-            echo "The subdomain $sub is a $record_type record and points to $destination"
-        done
-    fi
+print_domain_record () {
+    record_and_ip=$(dig "$2"."$1" | grep -A1 'ANSWER SECTION:' | tail -1 | awk '{print $4, $NF}')
+    echo "$2" $record_and_ip | awk '{print "The subdomain " $1 " is a " $2 " record and points to " $3}'
 }
 
-if [ $# -lt 1 ]; then
-    echo "Usage: $0 domain [subdomain]"
-    exit 1
+if [ "$#" == 2 ]; then
+    print_domain_record "$1" "$2"
+else
+    for sub in "www" "lb-01" "web-01" "web-02"; do
+        print_domain_record "$1" "$sub"
+    done
 fi
-
-audit_domain "$1" "$2"
