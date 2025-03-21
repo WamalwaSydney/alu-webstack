@@ -1,15 +1,35 @@
 #!/usr/bin/env bash
-# This function to displays subdomain information [SUB_DOMAIN] is a [RECORD_TYPE] record and points to [DESTINATION]
+# Displays DNS information for specified domain and subdomains
 
-print_domain_record () {
-    record_and_ip=$(dig "$2"."$1" | grep -A1 'ANSWER SECTION:' | tail -1 | awk '{print $4, $NF}')
-    echo "$2" $record_and_ip | awk '{print "The subdomain " $1 " is a " $2 " record and points to " $3}'
+audit_domain() {
+    local domain=$1
+    local subdomain=$2
+    
+    check_subdomain() {
+        local sub=$1
+        local answer
+        answer=$(dig "$sub.$domain" +short)
+        
+        if [ -z "$answer" ]; then
+            echo "The subdomain $sub does not exist or has no A record"
+        else
+            echo "The subdomain $sub is a A record and points to $answer"
+        fi
+    }
+
+    if [ -n "$subdomain" ]; then
+        check_subdomain "$subdomain"
+    else
+        local subdomains=("www" "lb-01" "web-01" "web-02")
+        for sub in "${subdomains[@]}"; do
+            check_subdomain "$sub"
+        done
+    fi
 }
 
-if [ "$#" == 2 ]; then
-    print_domain_record "$1" "$2"
-else
-    for sub in "www" "lb-01" "web-01" "web-02"; do
-        print_domain_record "$1" "$sub"
-    done
+if [ $# -lt 1 ]; then
+    echo "Usage: $0 domain [subdomain]"
+    exit 1
 fi
+
+audit_domain "$1" "$2"
